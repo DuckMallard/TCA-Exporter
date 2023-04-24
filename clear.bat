@@ -1,0 +1,1 @@
+rd .venv /S /q
