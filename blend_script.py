@@ -105,9 +105,6 @@ def get_type_id(class_id):
         )
     return type_id
 
-
-# asset bundle is at path_id 1 by default
-
 class EmptyObject(object):
     def __init__(self, **kwargs):
         self.__dict__.update(base_obj_dict)
@@ -323,24 +320,5 @@ for blend_obj in obj_list:
             }
         })
         
-# for i, sftype in enumerate(sf.types):
-#     print(i, sftype.__dict__)
-
 with open(saved_asset_file_path, 'wb') as f:
     f.write(env.file.save())
-
-# bundle = EmptyBundle(
-#     signature="UnityFS",
-#     version=7,
-#     format=6,
-#     version_engine="2020.3.30f1",
-#     version_player="5.x.x",
-#     files={},
-# )
-
-# bundle.files['serialized_files'] = env.file
-# env.file.flags = 4
-# env.file.externals = []
-
-# with open('output/bundle.unity3d', 'wb') as file:
-#     file.write(bundle.save())
