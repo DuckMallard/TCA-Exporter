@@ -153,9 +153,6 @@ def get_type_id(class_id):
 
     return type_id
 
-
-# asset bundle is at path_id 1 by default
-
 class EmptyObject(object):
     def __init__(self, **kwargs):
         self.__dict__.update(base_obj_dict)
@@ -375,45 +372,9 @@ for blend_obj in obj_list:
                 'path': ''
             }
         })
-
-    # print(empty_obj)
-
-    # sf._container[empty_obj.path_id] = f'assets/{blend_obj.name}'
-    # sf.container_[f'assets/{blend_obj.name}'] = EmptyPPtr(
-    #     version=22,
-    #     index=-1,
-    #     filed_id=0,
-    #     path_id=empty_obj.path_id,
-    #     assets_file=sf,
-    #     _obj=empty_obj
-    # )
-
-    container.append(
-        (
-            f'assets/{blend_obj.name}',
-            {
-                'preloadIndex': 0,
-                'preloadSize': 0,
-                'asset': {
-                    'm_FileID': 0,
-                    'm_PathID': empty_obj.path_id
-                }
-            }
-        )
-    )
-    # preload.append({
-    #     'm_FileID': 0,
-    #     'm_PathID': empty_obj.path_id
-    # })
-
-
-sf.save()
-
-
-tree = asset_bundle_obj.read_typetree()
-tree['m_Container'] = container
-tree['m_PreloadTable'] = preload
-asset_bundle_obj.save_typetree(tree)
+        
+# for i, sftype in enumerate(sf.types):
+#     print(i, sftype.__dict__)
 
 with open(saved_asset_file_path, 'wb') as f:
     f.write(env.file.save())
