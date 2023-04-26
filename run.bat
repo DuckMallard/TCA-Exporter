@@ -1,7 +1,7 @@
 cls
 cd C:\Users\jmayh\Documents\Programming\TCA-FINAL\blends
-del A-4(copy).blend
-copy A-4(original).blend A-4(copy).blend
+del M1.blend
+copy M1(original).blend M1(copy).blend
 cd C:\Users\jmayh\Documents\Programming\TCA-FINAL\
-blender blends\A-4(copy).blend --background -P blend_script.py > output/log.txt
+blender blends\M1(copy).blend --background -P blend_script.py > output/log.txt
 cls

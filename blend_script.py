@@ -22,6 +22,8 @@ import UnityPy
 from UnityPy.enums import ClassIDType 
 from UnityPy.files import ObjectReader, BundleFile
 from UnityPy.files.SerializedFile import SerializedType
+from UnityPy.helpers.Tpk import get_typetree_nodes
+from UnityPy.classes import PPtr
 import os
 from copy import copy
 
@@ -52,10 +54,16 @@ def recursively_find_children(obj):
 
 recursively_find_children(root_obj)
 
+# obj_list = [obj for obj in obj_list if obj.type == 'EMPTY']
+
+# obj_list = []
+
 base_asset_file_path = os.path.join(os.getcwd(), 'base_bundle')
 # base_asset_file_path = "C:/Program Files (x86)/Steam/Backups/TinyCombatArenaDev/Arena_Data/resources-original.assets"
 saved_asset_file_path = os.path.join(os.getcwd(), 'output/created_bundle')
 env = UnityPy.load(base_asset_file_path)
+
+# print(list(env.file.files.values())[0].__dict__)
 
 class EmptyBundle(object):
     def __init__(self, **kwargs):
@@ -77,8 +85,16 @@ def get_next_id_gen():
 id_gen = get_next_id_gen()
 
 base_obj_dict = [obj for obj in env.objects if obj.type.name == 'GameObject'][0].__dict__
+asset_bundle_obj = [obj for obj in env.objects if obj.type.name == 'AssetBundle'][0]
+
+container = []
+preload = []
 
 sf = list(env.file.files.values())[0]
+
+sf._container = {}
+sf.container_ = {}
+
 keys = list(sf.objects.keys())
 for key in keys:
     if sf.objects[key].type.name != 'AssetBundle':
@@ -91,18 +107,50 @@ def get_type_id(class_id):
             type_id = i
     if type_id == -1:
         type_id = len(sf.types)
-        print(True, type_id, class_id)
+        
+        nodes = get_typetree_nodes(class_id, (2020, 3, 30, 1))
+
+        buffer = []
+        offset = 0
+        known_strings = {}
+
+        def store_string(string):
+            nonlocal offset
+
+            if string == "SInt32":
+                string = "int"
+            elif string == "UInt32":
+                string = "unsigned int"
+
+            string_offset = known_strings.get(string)
+            
+            if string_offset is None:
+                known_strings[string] = string_offset = offset
+                string_raw = string.encode("utf8") + b"\x00"
+                offset += len(string_raw)
+                buffer.append(string_raw)
+            return string_offset
+
+        for node in nodes:
+            node.m_TypeStrOffset = store_string(node.m_Type)
+            node.m_NameStrOffset = store_string(node.m_Name)
+
+        str_data = b"".join(buffer)
+
         sf.types.append(
             EmptySerializedType(
                 class_id=class_id,
                 is_stripped_type=False,
-                node=[],
                 script_type_index=-1,
+                nodes=nodes,
                 old_type_hash=generate_16_byte_uid(),
-                string_data=b'',
-                type_dependencies=[]
+                string_data=str_data,
+                type_dependencies=()
             )
+
+
         )
+
     return type_id
 
 
@@ -120,6 +168,11 @@ class EmptySerializedType(object):
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
         self.__class__ = SerializedType 
+
+class EmptyPPtr(object):
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+        self.__class__ = PPtr
 
 
 for blend_obj in obj_list:
@@ -322,25 +375,45 @@ for blend_obj in obj_list:
                 'path': ''
             }
         })
-        
-# for i, sftype in enumerate(sf.types):
-#     print(i, sftype.__dict__)
+
+    # print(empty_obj)
+
+    # sf._container[empty_obj.path_id] = f'assets/{blend_obj.name}'
+    # sf.container_[f'assets/{blend_obj.name}'] = EmptyPPtr(
+    #     version=22,
+    #     index=-1,
+    #     filed_id=0,
+    #     path_id=empty_obj.path_id,
+    #     assets_file=sf,
+    #     _obj=empty_obj
+    # )
+
+    container.append(
+        (
+            f'assets/{blend_obj.name}',
+            {
+                'preloadIndex': 0,
+                'preloadSize': 0,
+                'asset': {
+                    'm_FileID': 0,
+                    'm_PathID': empty_obj.path_id
+                }
+            }
+        )
+    )
+    # preload.append({
+    #     'm_FileID': 0,
+    #     'm_PathID': empty_obj.path_id
+    # })
+
+
+sf.save()
+
+
+tree = asset_bundle_obj.read_typetree()
+tree['m_Container'] = container
+tree['m_PreloadTable'] = preload
+asset_bundle_obj.save_typetree(tree)
 
 with open(saved_asset_file_path, 'wb') as f:
     f.write(env.file.save())
-
-# bundle = EmptyBundle(
-#     signature="UnityFS",
-#     version=7,
-#     format=6,
-#     version_engine="2020.3.30f1",
-#     version_player="5.x.x",
-#     files={},
-# )
-
-# bundle.files['serialized_files'] = env.file
-# env.file.flags = 4
-# env.file.externals = []
-
-# with open('output/bundle.unity3d', 'wb') as file:
-#     file.write(bundle.save())
