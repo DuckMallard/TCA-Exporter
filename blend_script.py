@@ -23,9 +23,12 @@ from UnityPy import Environment
 from UnityPy.enums import ClassIDType 
 from UnityPy.files import ObjectReader, BundleFile, SerializedFile
 from UnityPy.files.SerializedFile import SerializedType
-from UnityPy.helpers import Tpk
+from UnityPy.helpers import Tpk, TypeTreeHelper
 from UnityPy.classes import PPtr
 import bpy
+
+TypeTreeHelper.read_typetree_c = False
+
 
 
 def main():
@@ -34,6 +37,8 @@ def main():
 
     env: Environment = UnityPy.load(base_bundle_fp)
     sf: SerializedFile = list(env.file.files.values())[0]
+    rf = list(env.file.files.values())[1]
+    print(bytes(rf.view))
 
     sf._container = {}
     sf.container_ = {}
@@ -59,10 +64,16 @@ def main():
             self.__dict__.update(gameobject_asset.__dict__)
             self.__dict__.update(kwargs)
             sf.objects[kwargs['path_id']] = self
-            preload.append({
-                'm_FileID': 0,
-                'm_PathID': kwargs['path_id']
-            })
+            if self.type.name != 'Mesh':
+                preload.append({
+                    'm_FileID': 0,
+                    'm_PathID': kwargs['path_id']
+                })
+            else:
+                preload.insert(0, {
+                    'm_FileID': 0,
+                    'm_PathID': kwargs['path_id']
+                })
             sf.mark_changed()
 
         def save(self):
@@ -157,10 +168,9 @@ def main():
         tree_map[gameobject.path_id] = {
             'm_Component': [
                 {
-                    'component':
-                    {
-                        'm_FileID': 0,
-                        'm_PathID': transform.path_id,
+                    'component': {
+                        'm_FileID': 0, 
+                        'm_PathID': transform.path_id
                     }
                 }
             ],
@@ -177,7 +187,7 @@ def main():
             },
             'm_LocalRotation': dict(zip([*'wxyz'], bpy_obj.rotation_quaternion)),
             'm_LocalPosition': dict(zip([*'xyz'], bpy_obj.location)),
-            'm_LocalScale': dict(zip([*'xyz'], bpy_obj.scale)),
+            'm_LocalScale': dict(zip([*'xyz'], [0.0,0.0,0.0])),#bpy_obj.scale)),
             'm_Children': [],
             'm_Father': {
                 'm_FileID': 0,
@@ -185,21 +195,21 @@ def main():
             }
         }
 
-        # container.append((
-        #     f'assets/{bpy_obj.name}',
-        #     {
-        #         'preloadIndex': gameobject.path_id - 2,
-        #         'preloadSize': 2,
-        #         'asset': {
-        #             'm_FileID': 0,
-        #             'm_PathID': gameobject.path_id
-        #         }
-        #     }
-        # ))
-
         return [gameobject.path_id, transform.path_id]
 
     def add_mesh(bpy_obj, gameobject_path_id, transform_path_id):
+        
+        [sub_gameobject_path_id, sub_transform_path_id
+         ] = add_gameobject(bpy_obj, gameobject_path_id, transform_path_id)
+        
+        mesh = EmptyObject(
+            type_id=get_type_id(43),
+            type=ClassIDType(43),
+            serialized_type = sf.types[get_type_id(43)],
+            class_id=43,
+            data=b'',
+            path_id=next(path_id_generator)
+        )
         mesh_renderer = EmptyObject(
             type_id=get_type_id(23),
             type=ClassIDType(23),
@@ -208,18 +218,273 @@ def main():
             data=b'',
             path_id=next(path_id_generator)
         )
-        
-        pass
+        mesh_filter = EmptyObject(
+            type_id=get_type_id(33),
+            type=ClassIDType(33),
+            serialized_type = sf.types[get_type_id(33)],
+            class_id=33,
+            data=b'',
+            path_id=next(path_id_generator)
+        )
+
+        byte_mask = (1 << 8) - 1
+        to_bytes = lambda x: list(struct.pack('<f', x))
+
+        mesh_data = bpy_obj.data
+
+        positions = []
+        normals = []
+        uvs = []
+        index_buffer = []
+        index_counter = 0
+
+        for poly in mesh_data.polygons:
+            for i in range(poly.loop_start, poly.loop_start + 3):
+                
+                loop = mesh_data.loops[i]
+                uv_loop = mesh_data.uv_layers[0].data[i]
+                vert = mesh_data.vertices[loop.vertex_index]
+                
+                positions.append(vert.co)
+                normals.append(poly.normal)
+                uvs.append(uv_loop.uv)
+
+                index_buffer += [index_counter & byte_mask, index_counter >> 8]
+                index_counter += 1
+
+        data_size: list[int] = []
+        for vert in zip(positions, normals, uvs):
+            data_size.extend(itertools.chain(*[to_bytes(float) for float in itertools.chain(*vert)]))
+
+        tree_map[mesh.path_id] = {
+            'm_Name': 'mesh',
+            'm_SubMeshes': [
+                {
+                    'firstByte': 0,
+                    'indexCount': int(len(index_buffer) / 2),
+                    'topology': 0,
+                    'baseVertex': 0,
+                    'firstVertex': 0,
+                    'vertexCount': int(len(data_size) / 32),
+                    'localAABB': {
+                        'm_Center': dict(zip([*'xyz'], [0, 0, 0])),
+                        'm_Extent': dict(zip([*'xyz'], [10,10,10]))
+                    }
+                }
+            ],
+            'm_Shapes': {
+                'vertices': [],
+                'shapes': [],
+                'channels': [],
+                'fullWeights': []
+            },
+            'm_BindPose': [],
+            'm_BoneNameHashes': [],
+            'm_RootBoneNameHash': 0,
+            'm_BonesAABB': [],
+            'm_VariableBoneCountWeights': {
+                'm_Data': []
+            },
+            'm_MeshCompression': 0,
+            'm_IsReadable': True,
+            'm_KeepVertices': True,
+            'm_KeepIndices': True,
+            'm_IndexFormat': 0,
+            'm_IndexBuffer': index_buffer,
+            'm_VertexData': {
+                'm_VertexCount': int(len(data_size) / 32),
+                'm_Channels': [
+                    {'stream': 0, 'offset': 0, 'format': 0, 'dimension': 3},
+                    {'stream': 0, 'offset': 12, 'format': 0, 'dimension': 3},
+                    {'stream': 0, 'offset': 0, 'format': 0, 'dimension': 0},
+                    {'stream': 0, 'offset': 0, 'format': 0, 'dimension': 0},
+                    {'stream': 0, 'offset': 24, 'format': 0, 'dimension': 2},
+                    {'stream': 0, 'offset': 0, 'format': 0, 'dimension': 0},
+                    {'stream': 0, 'offset': 0, 'format': 0, 'dimension': 0},
+                    {'stream': 0, 'offset': 0, 'format': 0, 'dimension': 0},
+                    {'stream': 0, 'offset': 0, 'format': 0, 'dimension': 0},
+                    {'stream': 0, 'offset': 0, 'format': 0, 'dimension': 0},
+                    {'stream': 0, 'offset': 0, 'format': 0, 'dimension': 0},
+                    {'stream': 0, 'offset': 0, 'format': 0, 'dimension': 0},
+                    {'stream': 0, 'offset': 0, 'format': 0, 'dimension': 0},
+                    {'stream': 0, 'offset': 0, 'format': 0, 'dimension': 0}
+                ],
+                'm_DataSize': b''
+            },
+            'm_CompressedMesh': {
+                'm_Vertices': {
+                    'm_NumItems': 0,
+                    'm_Range': 0,
+                    'm_Start': 0,
+                    'm_Data': [],
+                    'm_BitSize': 0
+                },
+                'm_UV': {
+                    'm_NumItems': 0,
+                    'm_Range': 0,
+                    'm_Start': 0,
+                    'm_Data': [],
+                    'm_BitSize': 0
+                },
+                'm_Normals': {
+                    'm_NumItems': 0,
+                    'm_Range': 0,
+                    'm_Start': 0,
+                    'm_Data': [],
+                    'm_BitSize': 0
+                },
+                'm_Tangents': {
+                    'm_NumItems': 0,
+                    'm_Range': 0,
+                    'm_Start': 0,
+                    'm_Data': [],
+                    'm_BitSize': 0
+                },
+                'm_Weights': {
+                    'm_NumItems': 0,
+                    'm_Data': [],
+                    'm_BitSize': 0
+                },
+                'm_NormalSigns': {
+                    'm_NumItems': 0,
+                    'm_Data': [],
+                    'm_BitSize': 0
+                },
+                'm_TangentSigns': {
+                    'm_NumItems': 0,
+                    'm_Data': [],
+                    'm_BitSize': 0
+                },
+                'm_FloatColors': {
+                    'm_NumItems': 0,
+                    'm_Range': 0,
+                    'm_Start': 0,
+                    'm_Data': [],
+                    'm_BitSize': 0
+                },
+                'm_BoneIndices': {
+                    'm_NumItems': 0,
+                    'm_Data': [],
+                    'm_BitSize': 0
+                },
+                'm_Triangles': {
+                    'm_NumItems': 0,
+                    'm_Data': [],
+                    'm_BitSize': 0
+                },
+                'm_UVInfo': 0
+            },
+            'm_LocalAABB': {
+                'm_Center': dict(zip([*'xyz'], [0, 0, 0])),
+                'm_Extent': dict(zip([*'xyz'], [10, 10, 10]))
+            },
+            'm_MeshUsageFlags': 0,
+            'm_BakedConvexCollisionMesh': [],
+            'm_BakedTriangleCollisionMesh': [],
+            'm_MeshMetrics[0]': 1,
+            'm_MeshMetrics[1]': 1,
+            'm_StreamData': {
+                'offset': 0,
+                'size': len(bytes(data_size)),
+                'path': 'archive:/CAB-0fed03e9f4b6c994368d82334e760061/CAB-0fed03e9f4b6c994368d82334e760061.resS'
+            }
+        }
+
+        rf.view = memoryview(bytes(data_size))
+        rf.Length = len(rf.view)
+
+        tree_map[mesh_filter.path_id] = {
+            'm_GameObject': {
+                'm_FileID': 0,
+                'm_PathID': sub_gameobject_path_id
+            },
+            'm_Mesh': {
+                'm_FileID': 0,
+                'm_PathID': mesh.path_id
+            }
+        }
+
+        tree_map[mesh_renderer.path_id] = {
+            'm_GameObject': {
+                'm_FileID': 0,
+                'm_PathID': sub_gameobject_path_id
+            },
+            'm_Enabled': True,
+            'm_CastShadows': 1,
+            'm_ReceiveShadows': 1,
+            'm_DynamicOccludee': 1,
+            'm_MotionVectors': 1,
+            'm_LightProbeUsage': 1,
+            'm_ReflectionProbeUsage': 1,
+            'm_RayTracingMode': 2,
+            'm_RayTraceProcedural': 0,
+            'm_RenderingLayerMask': 1,
+            'm_RendererPriority': 0,
+            'm_LightmapIndex': 65535,
+            'm_LightmapIndexDynamic': 65535,
+            'm_LightmapTilingOffset': dict(zip([*'xyzw'], [0,0,0,0])),
+            'm_LightmapTilingOffsetDynamic': dict(zip([*'xyzw'], [0,0,0,0])),
+            'm_Materials': [],
+            'm_StaticBatchInfo': {
+                'firstSubMesh': 0,
+                'subMeshCount': 0
+            },
+            'm_StaticBatchRoot': {
+                'm_FileID': 0,
+                'm_PathID': 0
+            },
+            'm_ProbeAnchor': {
+                'm_FileID': 0,
+                'm_PathID': 0
+            },
+            'm_LightProbeVolumeOverride': {
+                'm_FileID': 0,
+                'm_PathID': 0
+            },
+            'm_SortingLayerID': 0,
+            'm_SortingLayer': 0,
+            'm_SortingOrder': 0,
+            'm_AdditionalVertexStreams': {
+                'm_FileID': 0,
+                'm_PathID': 0
+            },
+            'm_EnlightenVertexStream': {
+                'm_FileID': 0,
+                'm_PathID': 0
+            }
+        }
+
+        tree_map[sub_gameobject_path_id]['m_Component'].append({
+            'component': {
+                'm_FileID': 0,
+                'm_PathID': mesh_filter.path_id
+            }
+        })
+        tree_map[sub_gameobject_path_id]['m_Component'].append({
+            'component': {
+                'm_FileID': 0,
+                'm_PathID': mesh_renderer.path_id
+            }
+        })
+
+        return [sub_gameobject_path_id, sub_transform_path_id]
 
     def descend_tree(bpy_obj, gameobject_path_id=0, transform_path_id=0):
 
-        [new_gameobject_path_id, new_transform_path_id] = add_gameobject(bpy_obj, gameobject_path_id, transform_path_id)
+        [new_gameobject_path_id, new_transform_path_id
+         ] = add_gameobject(bpy_obj, gameobject_path_id, transform_path_id)
+        
+        if bpy_obj.type == 'MESH':
+            [mesh_gameobject_path_id, mesh_transfrom_path_id
+             ] = add_mesh(bpy_obj, new_gameobject_path_id, new_transform_path_id)
+
+            tree_map[new_transform_path_id]['m_Children'].append({
+                'm_FileID': 0,
+                'm_PathID': mesh_transfrom_path_id
+            })
 
         for child in bpy_obj.children:
             descend_tree(child, new_gameobject_path_id, new_transform_path_id)
-
-        if bpy_obj.type == 'MESH':
-            add_mesh(bpy_obj, gameobject_path_id, transform_path_id)
 
         if transform_path_id != 0:
             parent_transform = sf.objects[transform_path_id]
@@ -501,7 +766,7 @@ if __name__ == '__main__':
 #             'm_BakedConvexCollisionMesh': [],
 #             'm_BakedTriangleCollisionMesh': [],
 #             'm_MeshMetrics[0]': 0,
-#             'm_MeshMetrics[1]': 0,
+#             'm_MeshMetrics[]': 0,
 #             'm_StreamData': {
 #                 'offset': 0,
 #                 'size': 0,
