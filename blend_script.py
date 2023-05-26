@@ -22,7 +22,7 @@ import itertools, struct, uuid, UnityPy
 from UnityPy import Environment
 from UnityPy.enums import ClassIDType 
 from UnityPy.files import ObjectReader, BundleFile, SerializedFile
-from UnityPy.files.SerializedFile import SerializedType
+from UnityPy.files.SerializedFile import SerializedType, FileIdentifier
 from UnityPy.helpers import Tpk, TypeTreeHelper
 from UnityPy.classes import PPtr
 import bpy
@@ -37,8 +37,7 @@ def main():
 
     env: Environment = UnityPy.load(base_bundle_fp)
     sf: SerializedFile = list(env.file.files.values())[0]
-    rf = list(env.file.files.values())[1]
-
+    
     sf._container = {}
     sf.container_ = {}
 
@@ -63,21 +62,20 @@ def main():
             self.__dict__.update(gameobject_asset.__dict__)
             self.__dict__.update(kwargs)
             sf.objects[kwargs['path_id']] = self
-            if self.type.name != 'Mesh':
-                preload.append({
-                    'm_FileID': 0,
-                    'm_PathID': kwargs['path_id']
-                })
-            else:
-                preload.insert(0, {
-                    'm_FileID': 0,
-                    'm_PathID': kwargs['path_id']
-                })
+            preload.append({
+                'm_FileID': 0,
+                'm_PathID': kwargs['path_id']
+            })
             sf.mark_changed()
 
         def save(self):
             return self.data
         
+    class EmptyFileIdentifier(object):
+        def __init__(self, **kwargs):
+            self.__class__ = FileIdentifier
+            self.__dict__.update(kwargs)
+
     class EmptySerializedType(object):
         def __init__(self, **kwargs):
             self.__dict__.update(kwargs)
@@ -144,6 +142,11 @@ def main():
             path_id += 1
 
     path_id_generator = generate_path_id()
+
+    def get_name_path(bpy_obj):
+        if bpy_obj:
+            return get_name_path(bpy_obj.parent) + f'/{bpy_obj.name}'
+        return ''
     
     def add_gameobject(bpy_obj, gameobject_path_id, transform_path_id):
         gameobject = EmptyObject(
@@ -186,7 +189,7 @@ def main():
             },
             'm_LocalRotation': dict(zip([*'wxyz'], bpy_obj.rotation_quaternion)),
             'm_LocalPosition': dict(zip([*'xyz'], bpy_obj.location)),
-            'm_LocalScale': dict(zip([*'xyz'], [1,1,1])),#bpy_obj.scale)),
+            'm_LocalScale': dict(zip([*'xyz'], [1,1,1])),
             'm_Children': [],
             'm_Father': {
                 'm_FileID': 0,
@@ -197,10 +200,6 @@ def main():
         return [gameobject.path_id, transform.path_id]
 
     def add_mesh(bpy_obj, gameobject_path_id, transform_path_id):
-        
-        [sub_gameobject_path_id, sub_transform_path_id
-         ] = add_gameobject(bpy_obj, gameobject_path_id, transform_path_id)
-        tree_map[sub_transform_path_id]['m_LocalPosition'] = dict(zip([*'xyz'], [0,0,0])) 
 
         mesh = EmptyObject(
             type_id=get_type_id(43),
@@ -385,18 +384,15 @@ def main():
             'm_MeshMetrics[1]': 1,
             'm_StreamData': {
                 'offset': 0,
-                'size': 0,#len(bytes(data_size)),
-                'path': ''#'archive:/CAB-0fed03e9f4b6c994368d82334e760061/CAB-0fed03e9f4b6c994368d82334e760061.resS'
+                'size': 0,
+                'path': ''
             }
         }
-        # print(bpy_obj.data)
-        # rf.view = memoryview(bytes(data_size))
-        # rf.Length = len(rf.view)
 
         tree_map[mesh_filter.path_id] = {
             'm_GameObject': {
                 'm_FileID': 0,
-                'm_PathID': sub_gameobject_path_id
+                'm_PathID': gameobject_path_id
             },
             'm_Mesh': {
                 'm_FileID': 0,
@@ -407,7 +403,7 @@ def main():
         tree_map[mesh_renderer.path_id] = {
             'm_GameObject': {
                 'm_FileID': 0,
-                'm_PathID': sub_gameobject_path_id
+                'm_PathID': gameobject_path_id
             },
             'm_Enabled': True,
             'm_CastShadows': 1,
@@ -426,8 +422,8 @@ def main():
             'm_LightmapTilingOffsetDynamic': dict(zip([*'xyzw'], [0,0,0,0])),
             'm_Materials': [
                 {
-                    'm_FileID': 0,
-                    'm_PathID': 0
+                    'm_FileID': 1,
+                    'm_PathID': 40
                 }
             ],
             'm_StaticBatchInfo': {
@@ -459,37 +455,38 @@ def main():
             }
         }
 
-        tree_map[sub_gameobject_path_id]['m_Component'].append({
+        tree_map[gameobject_path_id]['m_Component'].append({
             'component': {
                 'm_FileID': 0,
                 'm_PathID': mesh_filter.path_id
             }
         })
-        tree_map[sub_gameobject_path_id]['m_Component'].append({
+        tree_map[gameobject_path_id]['m_Component'].append({
             'component': {
                 'm_FileID': 0,
                 'm_PathID': mesh_renderer.path_id
             }
         })
 
-        return [sub_gameobject_path_id, sub_transform_path_id]
+        return [gameobject_path_id, transform_path_id]
+
+    root = 'Vehicles/M2'
 
     def descend_tree(bpy_obj, gameobject_path_id=0, transform_path_id=0):
 
+        preloadIndex = len(preload)
+
         [new_gameobject_path_id, new_transform_path_id
          ] = add_gameobject(bpy_obj, gameobject_path_id, transform_path_id)
-        
-        if bpy_obj.type == 'MESH':
-            [mesh_gameobject_path_id, mesh_transfrom_path_id
-             ] = add_mesh(bpy_obj, new_gameobject_path_id, new_transform_path_id)
 
-            tree_map[new_transform_path_id]['m_Children'].append({
-                'm_FileID': 0,
-                'm_PathID': mesh_transfrom_path_id
-            })
+        if bpy_obj.type == 'MESH':
+
+            add_mesh(bpy_obj, new_gameobject_path_id, new_transform_path_id)
 
         for child in bpy_obj.children:
             descend_tree(child, new_gameobject_path_id, new_transform_path_id)
+
+        preloadSize = len(preload) - preloadIndex
 
         if transform_path_id != 0:
             parent_transform = sf.objects[transform_path_id]
@@ -499,7 +496,7 @@ def main():
             })
         else:
             container.append((
-                f'assets/{bpy_obj.name}',
+                'Vehicles/M2/M2',
                 {
                     'preloadIndex': 0,
                     'preloadSize': len(preload),
@@ -509,6 +506,18 @@ def main():
                     }
                 }
             ))
+
+        # container.append((
+        #     f'Vehicles/M2{get_name_path(bpy_obj)}',
+        #     {
+        #         'preloadIndex': preloadIndex,
+        #         'preloadSize': preloadSize,
+        #         'asset': {
+        #             'm_FileID': 0,
+        #             'm_PathID': new_gameobject_path_id
+        #         }
+        #     }
+        # ))
 
     root_bpy_obj = [obj for obj in bpy.data.objects if obj.parent == None][0]
 
@@ -521,6 +530,16 @@ def main():
     tree['m_PreloadTable'] = preload
     tree['m_Container'] = container
     asset_bundle_asset.save_typetree(tree)
+
+    print(sf.externals)
+
+    sf.externals = []
+    sf.externals.append(EmptyFileIdentifier(
+        guid = bytes(bytearray(8)),
+        type = 0,
+        path = 'resources.assets',
+        temp_empty = ''
+    ))
 
     sf.mark_changed()
 
