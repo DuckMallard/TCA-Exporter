@@ -239,6 +239,8 @@ def main():
 
         for poly in mesh_data.polygons:
             for i in range(poly.loop_start, poly.loop_start + 3):
+                if poly.loop_total > 3:
+                    raise Exception('Mesh must be triangulated')
                 
                 loop = mesh_data.loops[i]
                 uv_loop = mesh_data.uv_layers[0].data[i]
@@ -423,7 +425,7 @@ def main():
             'm_Materials': [
                 {
                     'm_FileID': 1,
-                    'm_PathID': 40
+                    'm_PathID': (40 if bpy_obj.name != 'Shadow' else 36)
                 }
             ],
             'm_StaticBatchInfo': {
@@ -474,6 +476,8 @@ def main():
 
     def descend_tree(bpy_obj, gameobject_path_id=0, transform_path_id=0):
 
+        print(bpy_obj.name)
+
         preloadIndex = len(preload)
 
         [new_gameobject_path_id, new_transform_path_id
@@ -496,13 +500,13 @@ def main():
             })
         else:
             container.append((
-                'Vehicles/M2/M2',
+                'Aircraft/A4E/A4E',
                 {
                     'preloadIndex': 0,
                     'preloadSize': len(preload),
                     'asset': {
                         'm_FileID': 0,
-                        'm_PathID': new_gameobject_path_id
+                        'm_PathID': new_transform_path_id
                     }
                 }
             ))
@@ -535,7 +539,7 @@ def main():
 
     sf.externals = []
     sf.externals.append(EmptyFileIdentifier(
-        guid = bytes(bytearray(8)),
+        guid = bytes(bytearray(16)),
         type = 0,
         path = 'resources.assets',
         temp_empty = ''
