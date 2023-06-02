@@ -550,23 +550,19 @@ def menu_func_export(self, context):
 
 def register():
 
-    venv_site_pkg_file_path = os.path.join(os.getcwd(), '.venv/Lib/site-packages')
-
-    print(True)
+    venv_site_pkg_file_path = os.path.join(os.path.dirname(__file__), '.venv/Lib/site-packages')
 
     if not os.path.exists(venv_site_pkg_file_path):
         exe_file_path = sys.executable
-        venv_file_path = os.path.join(os.getcwd(), '.venv')
+        venv_file_path = os.path.join(os.path.dirname(__file__), '.venv')
         subprocess.run([exe_file_path, '-m' 'venv', venv_file_path])
 
-        venv_exe_file_path = os.path.join(os.getcwd(), '.venv/Scripts/python.exe')
-        venv_pip_file_path = os.path.join(os.getcwd(), '.venv/Scripts/pip.exe')
+        venv_exe_file_path = os.path.join(os.path.dirname(__file__), '.venv/Scripts/python.exe')
+        venv_pip_file_path = os.path.join(os.path.dirname(__file__), '.venv/Scripts/pip.exe')
 
         subprocess.run([venv_pip_file_path, 'install', 'UnityPy'])
 
     sys.path.append(venv_site_pkg_file_path)
-
-    print(True)
 
     import itertools, struct, uuid, UnityPy
     from UnityPy import Environment
@@ -581,9 +577,9 @@ def register():
 
 def unregister():
 
-    venv_site_pkg_file_path = os.path.join(os.getcwd(), '.venv/Lib/site-packages')
+    venv_file_path = os.path.join(os.path.dirname(__file__), '.venv')
 
-    subprocess.run(['rm', venv_site_pkg_file_path, '/q /s'])
+    subprocess.run(['rm', venv_file_path, '/q /s'])
 
     bpy.utils.unregister_class(TCA_Exporter)
     bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
