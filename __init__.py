@@ -5,7 +5,7 @@ bl_info = {
     'version': (1, 0, 0),
     'description': 'Addon that converts Blender objects to Unity prefabs.',
     'location': "File > Export > TCA Exporter",
-    'doc_url': 'https://github.com/DuckMallard/TCA-FINAL'
+    'doc_url': 'https://github.com/DuckMallard/TCA-Exporter'
 }
 
 import os, sys, subprocess, bpy
@@ -506,7 +506,19 @@ def main(_context, filepath):
     asset_bundle_asset.save_typetree(tree)
 
     external_files = [
-        'resources.assets'
+        'resources.assets',
+        'sharedassets0.assets',
+        'sharedassets1.assets',
+        'sharedassets2.assets',
+        'sharedassets3.assets',
+        'sharedassets4.assets',
+        'sharedassets5.assets',
+        'sharedassets6.assets',
+        'sharedassets7.assets',
+        'sharedassets8.assets',
+        'globalgamemanagers.assets',
+        'unity_builtin_extra',
+        'unity default resources'
     ]
 
     sf.externals = []
