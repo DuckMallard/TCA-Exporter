@@ -10,7 +10,7 @@ bl_info = {
 
 import os, sys, subprocess, bpy
 
-def main(context, filepath, asset_path):
+def main(_context, filepath):
     
     import itertools, struct, uuid, UnityPy
     from UnityPy import Environment
@@ -135,7 +135,7 @@ def main(context, filepath, asset_path):
             return get_name_path(bpy_obj.parent) + f'/{bpy_obj.name}'
         return ''
     
-    def add_gameobject(bpy_obj, gameobject_path_id, transform_path_id):
+    def add_gameobject(bpy_obj, _gameobject_path_id, transform_path_id):
         gameobject = EmptyObject(
             type_id=get_type_id(1),
             type=ClassIDType(1),
@@ -474,8 +474,6 @@ def main(context, filepath, asset_path):
         for child in bpy_obj.children:
             descend_tree(child, new_gameobject_path_id, new_transform_path_id)
 
-        preloadSize = len(preload) - preloadIndex
-
         if transform_path_id != 0:
             parent_transform = sf.objects[transform_path_id]
             tree_map[parent_transform.path_id]['m_Children'].append({
@@ -529,7 +527,6 @@ def main(context, filepath, asset_path):
     return {'FINISHED'}
 
 from bpy_extras.io_utils import ExportHelper
-from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy.types import Operator
 
 import logging
@@ -544,9 +541,9 @@ class TCA_Exporter(Operator, ExportHelper):
     filename_ext = ''
 
     def execute(self, context):
-        return main(context, self.filepath, self.asset_path)
+        return main(context, self.filepath)
 
-def menu_func_export(self, context):
+def menu_func_export(self, _context):
     self.layout.operator(TCA_Exporter.bl_idname, text="TCA Exporter")
 
 def register():
@@ -563,7 +560,7 @@ def register():
         logger.debug(f'Site packages not found, now installing venv at: {venv_file_path}')
         subprocess.run([exe_file_path, '-m' 'venv', venv_file_path])
 
-        venv_exe_file_path = os.path.join(os.path.dirname(__file__), '.venv/Scripts/python.exe')
+        _venv_exe_file_path = os.path.join(os.path.dirname(__file__), '.venv/Scripts/python.exe')
         venv_pip_file_path = os.path.join(os.path.dirname(__file__), '.venv/Scripts/pip.exe')
 
         subprocess.run([venv_pip_file_path, 'install', 'UnityPy'])
@@ -585,11 +582,8 @@ def unregister():
     logger.debug(f'Removing venv at : {venv_file_path}')
 
     try:
-        process = subprocess.run(['rmdir', f'"{venv_file_path}"', '/q', '/s'])#
+        subprocess.run(['rmdir', f'"{venv_file_path}"', '/q', '/s'])#
     except(Exception):
         logger.warn('Failed to remove .venv')
 
     logger.debug('Unregistration completed')
-
-if __name__ == "__main__":
-    pass
