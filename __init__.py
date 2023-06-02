@@ -10,8 +10,16 @@ bl_info = {
 
 import os, sys, subprocess, bpy
 
-def main(context, filepath):
-    base_bundle_fp: str = os.path.join(os.getcwd(), 'base_bundle')
+def main(context, filepath, asset_path):
+    
+    import itertools, struct, uuid, UnityPy
+    from UnityPy import Environment
+    from UnityPy.enums import ClassIDType 
+    from UnityPy.files import ObjectReader, SerializedFile
+    from UnityPy.files.SerializedFile import SerializedType, FileIdentifier
+    from UnityPy.helpers import Tpk
+
+    base_bundle_fp: str = os.path.join(os.path.dirname(__file__), 'base_bundle')
     saved_bundle_fp: str = filepath
 
     env: Environment = UnityPy.load(base_bundle_fp)
@@ -524,6 +532,10 @@ from bpy_extras.io_utils import ExportHelper
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy.types import Operator
 
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+logger.addHandler(logging.StreamHandler())
 
 class TCA_Exporter(Operator, ExportHelper):
     """TCA assetbundle export"""
@@ -531,58 +543,53 @@ class TCA_Exporter(Operator, ExportHelper):
     bl_label = 'Export'
     filename_ext = ''
 
-    asset_path : StringProperty(
-        default='Aircraft/NewPlane/NewPlane',
-        name='Asset path',
-        maxlen=255
-    )
-
-    selection : BoolProperty(
-        default=False,
-        name='Selection Only',
-    )
-
     def execute(self, context):
-        return main(context, self.filepath)
+        return main(context, self.filepath, self.asset_path)
 
 def menu_func_export(self, context):
     self.layout.operator(TCA_Exporter.bl_idname, text="TCA Exporter")
 
 def register():
 
+    logger.debug('Starting addon registration')
+
     venv_site_pkg_file_path = os.path.join(os.path.dirname(__file__), '.venv/Lib/site-packages')
+
+    logger.debug(f'Looking for site packages at: {venv_site_pkg_file_path}')
 
     if not os.path.exists(venv_site_pkg_file_path):
         exe_file_path = sys.executable
         venv_file_path = os.path.join(os.path.dirname(__file__), '.venv')
+        logger.debug(f'Site packages not found, now installing venv at: {venv_file_path}')
         subprocess.run([exe_file_path, '-m' 'venv', venv_file_path])
 
         venv_exe_file_path = os.path.join(os.path.dirname(__file__), '.venv/Scripts/python.exe')
         venv_pip_file_path = os.path.join(os.path.dirname(__file__), '.venv/Scripts/pip.exe')
 
         subprocess.run([venv_pip_file_path, 'install', 'UnityPy'])
-
+    else:
+        logger.debug(f'Site packages found at: {venv_site_pkg_file_path}, skipping install')
     sys.path.append(venv_site_pkg_file_path)
-
-    import itertools, struct, uuid, UnityPy
-    from UnityPy import Environment
-    from UnityPy.enums import ClassIDType 
-    from UnityPy.files import ObjectReader, BundleFile, SerializedFile
-    from UnityPy.files.SerializedFile import SerializedType, FileIdentifier
-    from UnityPy.helpers import Tpk, TypeTreeHelper
-    from UnityPy.classes import PPtr
 
     bpy.utils.register_class(TCA_Exporter)
     bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
 
+    logger.debug('Addon registration complete')
+
 def unregister():
-
-    venv_file_path = os.path.join(os.path.dirname(__file__), '.venv')
-
-    subprocess.run(['rm', venv_file_path, '/q /s'])
-
     bpy.utils.unregister_class(TCA_Exporter)
     bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
 
+    venv_file_path = os.path.join(os.path.dirname(__file__), '.venv')
+    
+    logger.debug(f'Removing venv at : {venv_file_path}')
+
+    try:
+        process = subprocess.run(['rmdir', f'"{venv_file_path}"', '/q', '/s'])#
+    except(Exception):
+        logger.warn('Failed to remove .venv')
+
+    logger.debug('Unregistration completed')
+
 if __name__ == "__main__":
-    register()
+    pass
