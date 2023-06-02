@@ -2,7 +2,7 @@
 ## TCA-Exporter
 A Blender addon to convert models in blender into a format that can be loaded into the game Tiny Combat Arena.
 
-Copyright (c) 2023 JMayh with MIT Licensce
+Copyright (c) 2023 JMayh with [MIT License](https://github.com/DuckMallard/TCA-Exporter/blob/master/LICENSE.txt)
 
 Credit to [Why485](https://twitter.com/Why485) and [Microprose](https://www.microprose.com/games/tiny-combat-arena/) for Tiny Combat Arena
 ___
