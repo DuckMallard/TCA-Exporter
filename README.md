@@ -19,7 +19,7 @@ ___
 - [TCA-Injecter Plugin](https://github.com/DuckMallard/TCA-Injector) (1.0.0) - This plugin allows TCA to open assetbundles and make them available in the game. Without this you cannot view exported models in TCA.
 - [Bepinex](https://github.com/BepInEx/BepInEx/releases) (5.4.21) **LTS** - Bepinex loads the the previously mentiond plugin. It is easy to install and can be used to run plugins for anyone. One day TCA might come with Bepinex already installed but for now its just a few clicks to setup..
 ### Optional Software:
-- [UABE](https://github.com/SeriousCache/UABE/releases) (3.0 Beta 1) - UABE allows more advance modifications to be done, such as referencing existing TCA shaders or using assets for unity's standard library.
+- [UABE](https://github.com/SeriousCache/UABE/releases) (3.0B1) - UABE allows more advance modifications to be done, such as referencing existing TCA shaders or using assets for unity's standard library.
 ___
 ### Getting Started
 - Download Blender if you havent already got it from [here](https://www.blender.org/download/), and ensure you have Tiny Combat Arena downloaded or purchase it [here](https://store.steampowered.com/app/1347550/Tiny_Combat_Arena/).
