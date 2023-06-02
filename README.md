@@ -30,6 +30,7 @@ ___
 - Now when you go to File > Export > TCA Export a popup will appear allowing you to select the location for your extracted models to be saved.
 - It's reccomend to save them in the folder TinyCombatArena/AssetBundles, if that folder doesn't exist quickly create it then carry on.
 - Now have a look at how to get the Injector Plugin installed so you can view your models in TCA
+___
 ### Notes:
 - This is a very early release and has many bugs. Either open an issue, or hop on the [TCA Modding Server](https://discord.gg/D5ScNgcTJh) to receieve support.
 - This Addon is also in its infancy and cannot support some more complex modding. At the moment custom textures arent supported. This is the next area of development and should hopefully be functioning soon.
