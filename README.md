@@ -1,6 +1,5 @@
-[![Discord server invite](https://discordapp.com/api/guilds/603359898507673630/embed.png)](https://discord.gg/C6txv7M)
+[![Discord server invite](https://discordapp.com/api/guilds/945830655558815777/embed.png)](https://discord.gg/kQEx6dEE)
 [![Win/Mac/Linux](https://img.shields.io/badge/platform-windows%20%7C%20macos%20%7C%20linux-informational)]()
-
 ## TCA-Exporter
 A Blender addon to convert models in blender into a format that can be loaded into the game Tiny Combat Arena.
 
