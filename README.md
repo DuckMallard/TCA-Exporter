@@ -30,5 +30,5 @@ ___
 - Now have a look at how to get the Injector Plugin installed so you can view your models in TCA
 ___
 ### Notes:
-- This is a very early release and has many bugs. Either open an issue, or hop on the [TCA Modding Server](https://discord.gg/D5ScNgcTJh) to receieve support.
+- This is a very early release and has many bugs. Either open an issue, or hop on the [TCA Modding Server](https://discord.gg/D5ScNgcTJh) to recieve support.
 - This Addon is also in its infancy and cannot support some more complex modding. At the moment custom textures arent supported. This is the next area of development and should hopefully be functioning soon.
