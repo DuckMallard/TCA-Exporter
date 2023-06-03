@@ -15,7 +15,7 @@ ___
 ### Mandatory Prerequisites
 - [Blender](https://www.blender.org/download/) (2.80.0) - Blender is a free open source modelling software that is easy to learn and is beginner friendly.
 - [Tiny Combat Arena](https://store.steampowered.com/app/1347550/Tiny_Combat_Arena/) (0.11.1.2T) - You will need to have purchased Tiny Combat Arena to use this addon. Additionally this Addon contains no artwork, code or other data from the game.
-- [TCA-Injecter Plugin](https://github.com/DuckMallard/TCA-Injector) (1.0.0) - This plugin allows TCA to open assetbundles and make them available in the game. Without this you cannot view exported models in TCA.
+- [TCA-Injecter Plugin](https://github.com/DuckMallard/TCA-Injector) (0.1.0) - This plugin allows TCA to open assetbundles and make them available in the game. Without this you cannot view exported models in TCA.
 - [Bepinex](https://github.com/BepInEx/BepInEx/releases) (5.4.21) **LTS** - Bepinex loads the the previously mentiond plugin. It is easy to install and can be used to run plugins for anyone. One day TCA might come with Bepinex already installed but for now its just a few clicks to setup..
 ### Optional Software:
 - [UABE](https://github.com/SeriousCache/UABE/releases) (3.0B1) - UABE allows more advance modifications to be done, such as referencing existing TCA shaders or using assets for unity's standard library.
