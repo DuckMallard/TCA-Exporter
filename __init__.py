@@ -488,6 +488,17 @@ def main(_context, filepath):
                     'preloadSize': len(preload),
                     'asset': {
                         'm_FileID': 0,
+                        'm_PathID': new_gameobject_path_id
+                    }
+                }
+            ))
+            container.append((
+                f'{bpy_obj.name}/Transform',
+                {
+                    'preloadIndex': 0,
+                    'preloadSize': len(preload),
+                    'asset': {
+                        'm_FileID': 0,
                         'm_PathID': new_transform_path_id
                     }
                 }
