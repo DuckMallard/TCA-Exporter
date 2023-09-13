@@ -179,7 +179,7 @@ def main(_context, filepath):
             },
             'm_LocalRotation': dict(zip([*'wxyz'], bpy_obj.rotation_quaternion)),
             'm_LocalPosition': dict(zip([*'xyz'], position(bpy_obj.location))),
-            'm_LocalScale': dict(zip([*'xyz'], [1,1,1])),
+            'm_LocalScale': dict(zip([*'xyz'], [-1,1,1])),
             'm_Children': [],
             'm_Father': {
                 'm_FileID': 0,
