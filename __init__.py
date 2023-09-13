@@ -10,6 +10,9 @@ bl_info = {
 
 import os, sys, subprocess, bpy
 
+def position(pos):
+    return [pos[0]*-1, pos[1], pos[2]]
+
 def main(_context, filepath):
     
     import itertools, struct, uuid, UnityPy
@@ -175,7 +178,7 @@ def main(_context, filepath):
                 'm_PathID': gameobject.path_id
             },
             'm_LocalRotation': dict(zip([*'wxyz'], bpy_obj.rotation_quaternion)),
-            'm_LocalPosition': dict(zip([*'xyz'], bpy_obj.location)),
+            'm_LocalPosition': dict(zip([*'xyz'], position(bpy_obj.location))),
             'm_LocalScale': dict(zip([*'xyz'], [1,1,1])),
             'm_Children': [],
             'm_Father': {
