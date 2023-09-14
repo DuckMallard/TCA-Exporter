@@ -240,7 +240,7 @@ def main(_context, filepath):
                 vert = mesh_data.vertices[loop.vertex_index]
                 
                 positions.append(vert_position(vert.co))
-                normals.append(poly.normal)
+                normals.append(vert_position(poly.normal))
                 uvs.append(uv_loop.uv)
 
                 index_buffer += [index_counter & byte_mask, index_counter >> 8]
