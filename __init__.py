@@ -10,7 +10,10 @@ bl_info = {
 
 import os, sys, subprocess, bpy
 
-def position(pos):
+def transform_position(pos):
+    return [pos[0]*-1, pos[1], pos[2]]
+
+def vert_position(pos):
     return [pos[0]*-1, pos[1], pos[2]]
 
 def main(_context, filepath):
@@ -178,8 +181,8 @@ def main(_context, filepath):
                 'm_PathID': gameobject.path_id
             },
             'm_LocalRotation': dict(zip([*'wxyz'], bpy_obj.rotation_quaternion)),
-            'm_LocalPosition': dict(zip([*'xyz'], position(bpy_obj.location))),
-            'm_LocalScale': dict(zip([*'xyz'], [-1,1,1])),
+            'm_LocalPosition': dict(zip([*'xyz'], transform_position(bpy_obj.location))),
+            'm_LocalScale': dict(zip([*'xyz'], [1,1,1])),
             'm_Children': [],
             'm_Father': {
                 'm_FileID': 0,
@@ -236,7 +239,7 @@ def main(_context, filepath):
                 uv_loop = mesh_data.uv_layers[0].data[i]
                 vert = mesh_data.vertices[loop.vertex_index]
                 
-                positions.append(vert.co)
+                positions.append(vert_position(vert.co))
                 normals.append(poly.normal)
                 uvs.append(uv_loop.uv)
 
