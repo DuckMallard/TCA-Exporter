@@ -1,3 +1,12 @@
+import bpy
+import logging
+import subprocess
+import sys
+import os
+from bpy.types import Operator
+from bpy_extras.io_utils import ExportHelper
+from . import main
+
 bl_info = {
     'name': 'TCA-Exporter',
     'blender': (2, 80, 0),
@@ -8,15 +17,11 @@ bl_info = {
     'doc_url': 'https://github.com/DuckMallard/TCA-Exporter'
 }
 
-import os, sys, subprocess, bpy, logging
-from . import main
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler())
 
-from bpy_extras.io_utils import ExportHelper
-from bpy.types import Operator
 
 class TCA_Exporter(Operator, ExportHelper):
     """TCA assetbundle export"""
@@ -27,19 +32,22 @@ class TCA_Exporter(Operator, ExportHelper):
     def execute(self, context):
         return main.export(context, self.filepath)
 
+
 def menu_func_export(self, _context):
     self.layout.operator(TCA_Exporter.bl_idname, text="TCA Exporter")
+
 
 def register():
 
     logger.debug('Starting addon registration')
-    
+
     main.register()
 
     bpy.utils.register_class(TCA_Exporter)
     bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
 
     logger.debug('Addon registration complete')
+
 
 def unregister():
     bpy.utils.unregister_class(TCA_Exporter)
