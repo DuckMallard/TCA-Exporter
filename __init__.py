@@ -16,6 +16,9 @@ def transform_position(pos):
 def vert_position(pos):
     return [pos[0]*-1, pos[1], pos[2]]
 
+def tris_normal(norm):
+    return [norm[0], norm[1]*-1, norm[2]*-1]
+
 def main(_context, filepath):
     
     import itertools, struct, uuid, UnityPy
